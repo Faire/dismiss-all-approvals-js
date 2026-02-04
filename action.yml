@@ -19,6 +19,10 @@ inputs:
     description: 'Comment on the PR instead of dismissing approvals.'
     required: false
     default: false
+  excluding-shas:
+    description: 'A comma separated list of SHAs to exclude from the dismissal'
+    required: false
+    default: ''
 
 runs:
   using: node20

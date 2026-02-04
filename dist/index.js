@@ -29240,8 +29240,16 @@ async function run() {
             octokit,
             prNumber: pr.number
         });
+        const excludingShasInput = core.getInput('excluding-shas');
+        const excludingShas = excludingShasInput
+            ? excludingShasInput.split(',').map(sha => sha.trim())
+            : [];
+        const approvalsToProcess = excludingShas.length > 0
+            ? approvals.filter(approval => approval.commit_id === null ||
+                !excludingShas.includes(approval.commit_id))
+            : approvals;
         await dismissApprovals({
-            approvalIds: approvals.map(approval => approval.id),
+            approvalIds: approvalsToProcess.map(approval => approval.id),
             octokit,
             prNumber: pr.number,
             reason: core.getInput('reason', { required: true })
@@ -29263,7 +29271,7 @@ async function getPullRequestApprovals({ octokit, prNumber }) {
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             pull_number: prNumber,
-            page: page,
+            page: page
         });
         approvals.push(...result.data.filter(review => review.state === 'APPROVED'));
         if (!result.headers.link || !result.headers.link.includes('rel="next"')) {
@@ -29285,7 +29293,7 @@ async function dismissApprovals({ approvalIds, octokit, prNumber, reason }) {
         });
         return;
     }
-    await Promise.all(approvalIds.map(approvalId => octokit.rest.pulls.dismissReview({
+    await Promise.all(approvalIds.map(async (approvalId) => octokit.rest.pulls.dismissReview({
         owner: github.context.repo.owner,
         repo: github.context.repo.repo,
         pull_number: prNumber,
